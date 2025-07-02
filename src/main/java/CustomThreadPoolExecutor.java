@@ -93,6 +93,25 @@ public class CustomThreadPoolExecutor implements CustomExecutor {
         return shutdown;
     }
 
+    public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
+        long nanos = unit.toNanos(timeout);
+        long last = System.nanoTime();
+        while (!workers.isEmpty()) {
+            if (nanos <= 0) {
+                return false;
+            }
+            long now = System.nanoTime();
+            nanos -= (now - last);
+            last = now;
+            if (nanos > 0) {
+                // Можно добавить более интеллектуальное ожидание, например, wait/notify
+                // Для простоты пока просто спим немного
+                Thread.sleep(Math.min(nanos / 1_000_000, 10)); // Спим максимум 10мс
+            }
+        }
+        return true;
+    }
+
     public synchronized boolean shouldTerminateWorker(Worker worker) {
         int runningWorkers = (int) workers.stream().filter(Thread::isAlive).count();
         int idleWorkers = (int) workers.stream().filter(w -> w.getState() == Thread.State.WAITING || w.getState() == Thread.State.TIMED_WAITING).count();
